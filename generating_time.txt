@@ -1,0 +1,25 @@
+pgd attack on beit in MNIST: use 6.611923456192017 seconds.
+cw attack on beit in MNIST: use 560.5220954418182 seconds.
+zoo attack on beit in MNIST: use 2740.9317710399628 seconds.
+pgd attack on vit in MNIST: use 6.476030588150024 seconds.
+cw attack on vit in MNIST: use 531.37819647789 seconds.
+zoo attack on vit in MNIST: use 2674.4841964244843 seconds.
+pgd attack on beit_base_patch16_224 in ImageNet: use 381.397332906723 seconds.
+cw attack on beit_base_patch16_224 in ImageNet: use 3546.9971840381622 seconds.
+pgd attack on vit_base_patch16_224 in ImageNet: use 366.14511609077454 seconds.
+cw attack on vit_base_patch16_224 in ImageNet: use 3022.587507247925 seconds.
+
+pgd attack on beit in MNIST: use 6.663488149642944 seconds.
+cw attack on beit in MNIST: use 556.1228835582733 seconds.
+zoo attack on beit in MNIST: use 2768.7685651779175 seconds.
+pgd attack on vit in MNIST: use 6.40423846244812 seconds.
+cw attack on vit in MNIST: use 532.0458118915558 seconds.
+zoo attack on vit in MNIST: use 2689.348031282425 seconds.
+pgd attack on beit_base_patch16_224 in ImageNet: use 380.8954083919525 seconds.
+cw attack on beit_base_patch16_224 in ImageNet: use 3543.852976322174 seconds.
+pgd attack on vit_base_patch16_224 in ImageNet: use 365.5428011417389 seconds.
+cw attack on vit_base_patch16_224 in ImageNet: use 3027.9287338256836 seconds.
+
+zoo attack on beit_base_patch16_224 in ImageNet: use 399315.4744987488 seconds.
+zoo attack on vit_base_patch16_224 in ImageNet: use 399472.6703042984 seconds.
+

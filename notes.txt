@@ -1,0 +1,116 @@
+TypeError: cross_entropy_loss(): argument 'input' (position 1) must be Tensor, not SequenceClassifierOutput
+
+1. can't get batch inputs (I didn't succeed)
+2. cross entropy loss function error (output type wrong? huggingface)
+
+2. y must be in shape (nb_samples,)(可以直接是数字？或许) or (nb_samples, nb_classes)(这里应该就是例子里的y)
+(don't worry about this)
+
+plan:
+
+1. forget huggingface, not usable. Or tell andy let him decide
+2. use official beit implementation, try on imagenet (also VIT before), or try timm?
+3. check if imagenet fit ART
+
+1. change criterion and optimizer regarding to timm
+2. pre-processing imagenet
+3. connect to uni machine
+
+跟wakeling讲的东西：
+程序目前的输出，是label index，然后计算得出的准确率（还需努力，且我不知道他怎么算的准确率）
+问：怎么连接学校的机器？在学校机器上安装pytorch之类的库要遵循什么原则，我要怎样创建一个虚拟环境？
+还需要做的：加上邮件里说的东西，然后就无敌了
+
+report要写的东西随想：
+1. 发现pytorch的效果很差，之后发现pytorch的class跟imagenet不一样云云
+2. (没有用sharded，因为机器只有一个supported gpu，导致运行很慢)
+3. loss history diagram
+4. 第四部分开发的结构：data exploration and pre-processing, implementation of models, imp of attacks, benchmarking output
+5. 可以说一下，在实际开发中（example 1）开发的进度更加动态化，并不一定随计划进行
+6. 介绍一下optimization,（我们实际上可以用不止一种optimization，但好像跟项目没啥关系。我们可以说准确度不够是因为optimization没用对）
+7. 多看范文，有包括optimization, ReLU(关于prediction，在sample 1的3.4里)和dropout之类的知识，我们可以在设计或者development的时候提一下
+8. 说和specification不一样的地方要散，不要聚在一起。且重点介绍增加的部分（数据集，预处理，以及可能的optimizer，以及gradient history，以及别的）
+9. sorting file是不是也可以写进去，这在development里是很重要的一环
+10. 在比较时，攻击的运行速度是不是也可以写进去？（cw很明显比pgd慢，zoo最慢）
+11. citation 记得加上kaggle的转换文件
+12. 第一个范文有介绍pre-trained model的优势 (3.3第二段)，可以直接写高效与省时，同时不影响可信度与准确度，因为在一个dataset上训练
+13. MNist的优势：较低的总体复杂度，数据较少，不需preprocess，所以开发和使用成本较低，需要的computational power较少
+14. 或许可以在development里说一下gpu的事情，用imagenet需要在gpu里跑，pre-process需要整合成一个array/tensor
+15. 第二段spec的地方，加上判断是否human—imperceptible的evaluation criteria
+16. 3和4的差别：3总体介绍结构，然后分别分析用到的技术（抽象、直观）；4介绍产品的API等，详细（此项目介绍model时可用到gradient history，average accuracy/FI score）；7和8的区别：7评价产品，8评价项目
+17. 3先写结构，选数据库时说不同数据库的数据类型、label mapping之类的都不同，所以应当作为产品设计时就考虑的因素。然后介绍选的数据库
+18. 4 dev遇到的问题总结：1.数据类型不兼容(tensor和numpy array),2.没有sort input sequence(导致准确度0),3.运行速度慢/预处理文件太大(其他算法问题，在cpu上跑，没有整合输入数据导致复杂度高等)，算法准确度较低：vit85,beit90(2022.2.20不知道为什么)
+19. dev中应提及exception的事情，它们在specification里。具体再议；同时 product eval 应提及portability的事情；或许存储数据的方式也应提及（array还是tensor）
+20. 为什么用cpu，因为gpu的内存不够
+
+changes from specification:
+1. change models (from visualBert and image-GPT to BeiT and ViT)
+
+known bugs:
+1. when running projected gradient descent, ImportError: can't import _status_message. This is
+due to mistyped import file name. Change "from scipy.optimize.optimize import _status_message"
+in art.attacks.pixel_threshold.py to "from scipy.optimize._optimize import _status_message"
+
+2. from tensorflow.keras.utils import to_categorical only works in tensorflow 2.7.0
+
+log:
+1.测试时更改了run test的代码，改为不储存preprocess；以及更改了images的位置，将原来的images变为images_ori
+2.经过测试发现2022.2.20时文件系统应该是有问题的，不储存preprocess后一切正常。更新：因为没有sort 输入的npy文件，导致预测的顺序不一样
+3.2022.2.20 时发现变为tensor的y_pred不能用np.argmax进行准确度计算
+4.2022.2.20 因为开发时只用前20个图片，故也只用了前20个label，实际使用时需改回来
+
+5.2022.2.21 使用500张图片，cpu，beit，整合在一个numpy array 里的run_test运行时间为8.683310747146606 seconds，preprocess大小287MB;preprocess时间加在一起大概32秒左右
+6.2022.2.21 同上条件，原来的代码运行时间60.31112861633301 seconds。整合应该可以提升整体速度
+
+7.2022.2.22 20张图片分成5个batch，目前代码运行攻击的速度：pgd 77秒，c&w 672秒，zoo 4小时；且其准确率分别为0%，10%和30%
+8.2022.3.2 为了获取attack时的loss gradient，在cw l2的generate里加上了print loss gradient的代码，后又经删除
+
+9.2022.3.10 为了获取pgd的loss gradient，在projected_gradient_descent_pytorch.py中的
+__init()__中加入新的numpy array存储loss;两个numpy array
+_compute_perturbation()中操作新的variable 用来存储loss
+
+同理在CW中也加入了相同代码
+
+10.2022.3.10 为了测试pgd效果更好的可能性，把max_iter改成200。结果发现并不理想，loss value越高越好，但经过较少次数之后loss value就不会在上升
+
+11.2022.3.11又把500改成20了，记得改回去
+
+todo: 重构代码；储存classifier,攻击（example）数据，预处理数据和测试结果数据；
+todo: 增加attack在imagenet上（没试过，优先这个）
+todo:1.增加代码，存储预处理（我认为可以是tensor）和攻击数据；攻击（攻击和测试一样分每张图进行，然后储存成一个文件。默认输出是array，但要改成tensor）；之后重构代码。(尝试不用sharded，可能会导致程序变慢)
+todo:2.更改输出，加上别的功能（除了必要的，还可以例如loss history diagram，report写的差不多了再做）
+
+todo:1.可能还是要sharded（又或者说合成一个array会最快？）
+todo:2.loss history diagram!
+todo:3.增加output,例如confusion matrix,但需要问一下怎么实现
+todo:4.攻击速度太慢（每个图要几秒，50000张就要几十万秒=二十多个小时），怎么解决？（把图片集合成几个shard行不行）
+todo:5.显示pre-processed后和攻击后的图片例子，怎么解决？
+todo:6.研究各个攻击和模型的参数，看有什么能写进report的（我感觉每个都能写一点）
+todo：7.输出方式随想： loss history diagram, 攻击前后图片对比，FI-score，ROC Diagram，confusion matrix，最初的准确度
+todo:8.或许我并没有用gpu，应该更改代码让pytorch用gpu
+todo:9. use small batch size (e.g. 1) in zoo, maybe run faster；also check for c&w
+todo:10.example图像展示放到第三节，该节已加粗并下划线
+todo:11.展示class的时候要sort，别的测试结果自行设置x和y轴，每个都需是list
+todo:12.加上exception handling
+todo:13.引用kaggle的时候直接用括号表示url行不行？
+todo:14.重新跑程序以后，对应的evaluation也要改
+todo:15.问wakeling evaluation怎么写比较好，因为没篇幅了
+todo:16.因为改了library的代码，要不要把library也上交？
+todo:17.改report里的loss gradient 为loss values
+todo:18.加上loss values的开发过程
+todo:19. report里evaluation加上运行时间的猜想，以及development加上多进程开发
+todo:20.改的部分：4.5.6.7.8
+todo:21.下次开会跟wakeling说回邮件，因为一周一次feedback不够
+todo:22.现在的问题：流水账？
+todo:23.最后main的代码记得把注释掉的改回来
+todo:24.最后zoo test出来以后把ipynb里的y_true_imagenet_zoo去掉
+todo:25.confusion matrix 数据太多不好看清楚，我选择截取前50个数据（因此并没有涵盖到所有的class），问wakeling这样行不行
+todo:26.根据confusion matrix，似乎pgd会让model的confidence更高，而cw则会更低（2022.3.22 不写了，有点危险，我不确定对）
+todo:27.不知道肉眼看adversarial example的形式是否科学，因为有时vit的zoo也会有模糊的情况
+todo:28.制造时间是beit赢了，需要更长时间，因为它比较复杂（可能并不）
+
+todo:29.写计算loss value gradient的代码，以及显示20张图片的代码，不用放到report上，而是备用
+todo:30.改report:我的隐蔽性测试并不只有我一个人，而是我的朋友也参与其中
+
+todo:31.don't 改成 do not
+todo:32. readme

@@ -28,7 +28,7 @@ replace the original file (assuming the user uses virtual environment, if not, m
 replace the original files (assuming the user uses virtual environment, if not, move to where the libraries stored)</li>
 <li>Go to the imagenet official website (URL: https://www.image-net.org/)
 , download the source images of ILSVRC2012 validation dataset. Move the 
-images to "/data/validation/images" directory. All other required files are
+images to "/data/validation/images" directory (Please create a directory). All other required files are
 ready to use.</li>
 </ol>
 
